@@ -1,0 +1,9 @@
+RaggedPi Project
+Codename: Catnip
+
+RFID controled automated pet food dispenser.
+
+Features:
+- RFID reader
+- RTC
+- Servos
