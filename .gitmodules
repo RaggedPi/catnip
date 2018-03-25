@@ -1,0 +1,6 @@
+[submodule "Dispenser"]
+	path = Dispenser
+	url = git://github.com/RaggedPi/feeder-library.git
+[submodule "DS3231"]
+	path = DS3231
+	url = git://github.com/RaggedPi/DS3231.git

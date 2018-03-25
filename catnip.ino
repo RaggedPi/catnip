@@ -1,50 +1,54 @@
 /*
-  Timed Pet Feeder Library Example
+  Timed Pet Dispenser Library Example
   Written by david durost <david.durost@gmail.com>
 */
 /* Includes */
-#include <SoftwareSerial.h>     // serial library
-#include <Servo.h>              // servo library
-#include "Feeder/Feeder.h"             // pet feeder library
-#include <Wire.h>               // one wire library
-#include <Time.h>               // time library
-#include <DS3231.h>             // rtc library
-#include <MFRC522.h>            // rfid library
+#include <SoftwareSerial.h>         // serial library
+#include <Servo.h>                  // servo library
+#include "Dispenser/Dispenser.h"    // dispenser library
+#include "Pet.h"                    // pet library
+#include <Wire.h>                   // one wire library
+#include <Time.h>                   // time library
+#include "DS3231.h"                 // rtc library
+#include <MFRC522.h>                // rfid library
 
-#define SDA              4      // SDA/ SS
-#define SDL              5      // SDL
-#define CS               10     // Chipselect
-#define LED              13     // LED pin
-#define RESET            9      // Reset pin
-#define CAT_SERVO_PIN    6      // digital pin
-#define DOG_SERVO_PIN    7      // digital pin
-#define CAT              0      // delimeter
-#define DOG              1      // delimeter
-#define VEDA             0      // delimeter
-#define TOODLES          1      // delimeter
-#define BING             2      // delimeter
-#define MOXIE            3      // delimeter
-#define ELLIE            4      // delimeter
-#define EIGHT_HOURS      7200000 // ms
+#define SDA              4          // SDA/ SS
+#define SDL              5          // SDL
+#define CS               10         // Chipselect
+#define LED              13         // LED pin
+#define RESET            9          // Reset pin
 
-/* Structs */
-typedef struct {
-    String name;
-    String rfid;
-    byte type;
-    int feedings = 0;
-    unsigned long lastFeedTime;
-} Pet;
+#define CAT_SERVO_PIN    6          // digital pin
+#define DOG_SERVO_PIN    7          // digital pin
+#define PUPPY_SERVO_PIN  8          // digital pin
 
-RTClib rtc;                     // real time clock
-MFRC522 rfidReader(SDA, RESET); // rfid rfidReader
-Servo servos[2] = { Servo(), Servo() }; // servos
-Feeder feeders[2] = { Feeder(), Feeder() };              // feeders
-DateTime cTime;                 // current time
-unsigned long uTime;            // current millis
-String uid = "";                // rfid string
-Pet pets[3];                    // pets
-time_t feedTimes[3];            // time windows
+#define VEDA             0          // delimeter
+#define TOODLES          1          // delimeter
+#define BING             2          // delimeter
+#define MOXIE            3          // delimeter
+#define ELLIE            4          // delimeter
+
+#define EIGHT_HOURS      7200000    // ms
+#define THIRTY_MINUTES   1800000    // ms
+
+/* Variables */
+RTClib rtc;                         // read time clock
+MFRC522 rfidReader(SDA, RESET);     // rfid rfidReader
+Servo servos[3] = {                 // servos
+    Servo(), 
+    Servo(),
+    Servo() 
+}; 
+Dispenser dispensers[3] = {         // dispensers
+    Dispenser(), 
+    Dispenser(),
+    Dispenser() 
+};                              
+DateTime cTime;                     // current time
+unsigned long uTime;                // current millis
+String uid = "";                    // rfid string
+Pet pets[4];                        // pets
+time_t feedTimes[2];                // time windows
 
 /**
  * Build time
@@ -52,7 +56,7 @@ time_t feedTimes[3];            // time windows
  * @param  byte mm
  * @param  byte ss
  */
-time_t tmBuildTime(byte hh=hour(), byte mm=minute(), byte ss=0) {
+time_t buildTime(byte hh=hour(), byte mm=minute(), byte ss=0) {
     tmElements_t tmSet;
     tmSet.Year = 2018 - 1970;
     tmSet.Month = 2;
@@ -80,9 +84,8 @@ bool inRange(int val, int minimum, int maximum) {
  * @param  Pet pet
   */
 void dispense(Pet pet) {
-    feeders[pet.type].dispense();
-    pet.feedings++;
-    pet.lastFeedTime = rtc.now().unixtime();
+    pet.dispense();
+    pet.setLastDispenseTime(uTime);
 }
 
 /**
@@ -108,10 +111,11 @@ bool rfidScan() {
   */
 void rfidCheck() {
     for (byte i=0; i<sizeof(pets); i++) {
-        if (uid.equals(pets[i].rfid)) {
-            if ((0 == pets[i].feedings) || 
-                (EIGHT_HOURS < (uTime - pets[i].lastFeedTime)))
-            dispense(pets[i]);
+        if (uid.equals(pets[i].getRFID())) {
+            if ((0 == pets[i].getDispenseCount()) || 
+                inRange(uTime, feedTimes[0], (feedTimes[0] + pets[i].getLastDispenseTimeWindow())) ||
+                inRange(uTime, feedTimes[1], (feedTimes[1] + pets[i].getLastDispenseTimeWindow())))
+                dispense(pets[i]);
         }
     }
 }
@@ -120,8 +124,8 @@ void rfidCheck() {
  * Reset feed counts
  */
 void resetFeedCounts() {
-    for (byte i=0; i<sizeof(pets); i++) {
-        pets[i].feedings = 0;
+    for (byte i=0; i < sizeof(pets); i++) {
+        pets[i].resetDispenseCount();
     }
 }
 
@@ -135,33 +139,38 @@ void setup() {
     rfidReader.PCD_Init();
     
     // feed times
-    feedTimes[0] = tmBuildTime(6,0);
-    feedTimes[1] = tmBuildTime(18,0);
+    feedTimes[0] = buildTime(6,0);
+    feedTimes[1] = buildTime(18,0);
     
     // servos
     servos[CAT].attach(CAT_SERVO_PIN);
     servos[DOG].attach(DOG_SERVO_PIN);
     
-    // feeders
-    feeders[CAT] = new Feeder(servos[CAT]);
-    feeders[DOG] = new Feeder(servos[DOG]);
+    // dispensers
+    dispensers[CAT] = new Dispenser(servos[CAT]);
+    dispensers[DOG] = new Dispenser(servos[DOG]);
     
     // pets
-    pets[VEDA].name = "Veda";
-    pets[VEDA].type = CAT;
-    pets[VEDA].rfid = "XXX";
-    pets[TOODLES].name = "Toodles";
-    pets[TOODLES].type = CAT;
-    pets[TOODLES].rfid = "XXX";
-    pets[BING].name = "Bing";
-    pets[BING].type = CAT;
-    pets[BING].rfid = "XXX";
-    pets[MOXIE].name = "Moxie";
-    pets[MOXIE].type = DOG;
-    pets[MOXIE].rfid = "XXX";
-    pets[ELLIE].name = "Ellie";
-    pets[ELLIE].type = DOG;
-    pets[ELLIE].rfid = "XXX";
+    pets[VEDA] = Pet("Veda", CAT, dispensers[CAT]);
+    pets[VEDA].setDispenseTimeWindow(THIRTY_MINUTES);
+    pets[VEDA].setDispenseTimes(feedTimes);
+    pets[VEDA].setRFID("XXX");
+    pets[TOODLES] = PET("Toodles", CAT, dispensers[CAT]);
+    pets[TOODLES].setDispenseTimeWindow(THIRTY_MINUTES);
+    pets[TOODLES].setDispenseTimes(feedTimes);
+    pets[TOODLES].setRFID("XXX");    
+    pets[BING] = Pet("Bing", CAT, dispensers[CAT]);
+    pets[BING].setDispenseTimeWindow(THIRTY_MINUTES);
+    pets[BING].setDispenseTimes(feedTimes);
+    pets[BING].setRFID("XXX");        
+    pets[MOXIE] = Pet("Moxie", DOG, dispensers[DOG]);
+    pets[MOXIE].setDispenseTimeWindow(THIRTY_MINUTES);
+    pets[MOXIE].setDispenseTimes(feedTimes);
+    pets[MOXIE].setRFID("XXX");
+    pets[ELLIE] = Pet("Ellie", PUPPY, dispensers[PUPPY]);
+    pets[ELLIE].setDispenseTimeWindow(THIRTY_MINUTES);
+    pets[ELLIE].setDispenseTimes(feedTimes);
+    pets[ELLIE].setRFID("XXX");
 }
 
 /** 
