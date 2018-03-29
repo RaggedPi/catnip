@@ -9,7 +9,7 @@
 #include "Pet.h"                    // pet library
 #include <Wire.h>                   // one wire library
 #include <Time.h>                   // time library
-#include "DS3231.h"                 // rtc library
+#include "DS3231/DS3231.h"                 // rtc library
 #include <MFRC522.h>                // rfid library
 
 #define SDA              4          // SDA/ SS
@@ -47,7 +47,13 @@ Dispenser dispensers[3] = {         // dispensers
 DateTime cTime;                     // current time
 unsigned long uTime;                // current millis
 String uid = "";                    // rfid string
-Pet pets[4];                        // pets
+Pet pets[5] = {                     // pets
+    Pet("Veda", CAT, dispensers[CAT]),
+    Pet("Toodles", CAT, dispensers[CAT]),
+    Pet("Bing", CAT, dispensers[CAT]),
+    Pet("Moxie", DOG, dispensers[DOG]),
+    Pet("Ellie", PUPPY, dispensers[PUPPY])
+};
 time_t feedTimes[2];                // time windows
 
 /**
@@ -113,8 +119,8 @@ void rfidCheck() {
     for (byte i=0; i<sizeof(pets); i++) {
         if (uid.equals(pets[i].getRFID())) {
             if ((0 == pets[i].getDispenseCount()) || 
-                inRange(uTime, feedTimes[0], (feedTimes[0] + pets[i].getLastDispenseTimeWindow())) ||
-                inRange(uTime, feedTimes[1], (feedTimes[1] + pets[i].getLastDispenseTimeWindow())))
+              inRange(uTime, feedTimes[0], (feedTimes[0] + pets[i].getDispenseTimeWindow())) ||
+              inRange(uTime, feedTimes[1], (feedTimes[1] + pets[i].getDispenseTimeWindow())))
                 dispense(pets[i]);
         }
     }
@@ -145,17 +151,18 @@ void setup() {
     // servos
     servos[CAT].attach(CAT_SERVO_PIN);
     servos[DOG].attach(DOG_SERVO_PIN);
+    servos[PUPPY].attach(PUPPY_SERVO_PIN);
     
     // dispensers
     dispensers[CAT] = new Dispenser(servos[CAT]);
     dispensers[DOG] = new Dispenser(servos[DOG]);
-    
+    dispensers[PUPPY] = new Dispenser(servos[PUPPY]);
+
     // pets
-    pets[VEDA] = Pet("Veda", CAT, dispensers[CAT]);
     pets[VEDA].setDispenseTimeWindow(THIRTY_MINUTES);
     pets[VEDA].setDispenseTimes(feedTimes);
     pets[VEDA].setRFID("XXX");
-    pets[TOODLES] = PET("Toodles", CAT, dispensers[CAT]);
+    pets[TOODLES] = Pet("Toodles", CAT, dispensers[CAT]);
     pets[TOODLES].setDispenseTimeWindow(THIRTY_MINUTES);
     pets[TOODLES].setDispenseTimes(feedTimes);
     pets[TOODLES].setRFID("XXX");    

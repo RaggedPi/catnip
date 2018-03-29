@@ -52,6 +52,13 @@ int Pet::getDispenseCount() {
 }
 
 /**
+ * Rest dispense count
+ */
+void Pet::resetDispenseCount() {
+    _dispenseCount = 0;
+}
+
+/**
  * Set dispense time window
  * @param int minutes default: 30
  */
@@ -80,7 +87,7 @@ void Pet::setDispenseTimes(time_t dispenseTimes[]) {
  * Get dispense times
  * @return time_t array
  */
-time_t Pet::getDispenseTimes() {
+time_t* Pet::getDispenseTimes() {
     return _dispenseTimes;
 }
 

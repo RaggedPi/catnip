@@ -26,13 +26,13 @@ class Pet {
         void dispense();
         // Dispense count
         int getDispenseCount();
-        void restDispenseCount();
+        void resetDispenseCount();
         // Dispense time window
         void setDispenseTimeWindow(int minutes);
         int getDispenseTimeWindow();
         // Dispense times
         void setDispenseTimes(time_t dispenseTimes[]);
-        time_t getDispenseTimes();
+        time_t* getDispenseTimes();
         // RFID
         void setRFID(String rfid);
         String getRFID();
