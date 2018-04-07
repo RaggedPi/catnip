@@ -9,7 +9,7 @@
 #include "Pet.h"                    // pet library
 #include <Wire.h>                   // one wire library
 #include <Time.h>                   // time library
-#include "DS3231/DS3231.h"                 // rtc library
+#include "DS3231/DS3231.h"          // rtc library
 #include <MFRC522.h>                // rfid library
 
 #define SDA              4          // SDA/ SS

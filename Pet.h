@@ -1,17 +1,22 @@
 #ifndef PET_H
 #define PET_H
 
-#include "Arduino.h"
+#if defined(ARDUINO) && ARDUINO >= 100
+    #include "Arduino.h"
+#else
+    #include "WProgram.h"
+#endif
 
 #include <Time.h>
-#include "Dispenser/Dispenser.h"
+#include <Dispenser.h>
 
-#define NONE
-#define DOG 0
-#define CAT 1
-#define PUPPY 2
-#define KITTEN 3
-
+/* Delimiters */
+#define NONE -1                     // delimter   
+#define DOG 0                       // delimiter
+#define CAT 1                       // delimiter
+#define PUPPY 2                     // delimiter
+#define KITTEN 3                    // delimiter
+/* Timers */
 #define EIGHT_HOURS      7200000    // ms
 #define THIRTY_MINUTES   1800000    // ms
 
@@ -40,14 +45,14 @@ class Pet {
         void setName(String name);
         String getName();
     private:
-        Dispenser _dispenser;
-        int _timeWindow;
-        unsigned long _lastDispenseTime;
-        time_t _dispenseTimes[2];
-        byte _petType;
-        String _rfid;
-        int _dispenseCount;
-        String _name;
+        Dispenser       _dispenser;         // dispenser
+        int             _timeWindow;        // duration
+        unsigned long   _lastDispenseTime;  // timestamp
+        time_t          _dispenseTimes[2];  // time objects
+        byte            _petType;           // delimiter
+        String          _rfid;              // rfid
+        int             _dispenseCount;     // counter
+        String          _name;              // name
 };
 
 #endif
